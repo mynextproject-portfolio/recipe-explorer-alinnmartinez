@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Response
 from fastapi.responses import JSONResponse
 from typing import List
 from app.models import Recipe, RecipeCreate, RecipeUpdate
@@ -53,8 +53,8 @@ def get_recipe(recipe_id: str):
         logger.error(f"Error fetching recipe {recipe_id}: {str(e)}")
         return create_error_response(500, "Internal server error occurred")
 
-@router.post("/recipes", status_code=status.HTTP_201_CREATED)
-def create_recipe(recipe_data: RecipeCreate):
+@router.post("/recipes")
+def create_recipe(recipe_data: RecipeCreate, response: Response):
     """Create a new recipe with comprehensive validation"""
     try:
         # Additional business logic validation
@@ -71,6 +71,7 @@ def create_recipe(recipe_data: RecipeCreate):
                 return create_error_response(409, f"Recipe with title '{recipe_data.title}' already exists")
         
         new_recipe = recipe_storage.create_recipe(recipe_data)
+        response.status_code = status.HTTP_201_CREATED
         return new_recipe
         
     except ValidationError as e:
@@ -151,3 +152,29 @@ def search_recipes(query: str):
     except Exception as e:
         logger.error(f"Error searching recipes with query '{query}': {str(e)}")
         return create_error_response(500, "Internal server error occurred")
+
+# Add validation test endpoints for demonstration
+@router.post("/recipes/test-validation")
+def test_validation_endpoint(recipe_data: RecipeCreate):
+    """Test endpoint that always fails validation for demonstration"""
+    return create_error_response(422, "This endpoint always fails for testing", {
+        "test_field": "This is a test validation error",
+        "another_field": "Multiple validation errors can be shown"
+    })
+
+@router.get("/recipes/test-error/{error_type}")
+def test_error_endpoint(error_type: str):
+    """Test endpoint for demonstrating different error types"""
+    if error_type == "400":
+        return create_error_response(400, "Bad request example")
+    elif error_type == "404":
+        return create_error_response(404, "Resource not found example")
+    elif error_type == "422":
+        return create_error_response(422, "Validation error example", {
+            "title": "Title is required",
+            "ingredients": "At least one ingredient is required"
+        })
+    elif error_type == "500":
+        return create_error_response(500, "Internal server error example")
+    else:
+        return create_error_response(400, f"Unknown error type: {error_type}")
