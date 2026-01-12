@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, status, Response
 from fastapi.responses import JSONResponse
 from typing import List
+import logging
 from app.models import Recipe, RecipeCreate, RecipeUpdate
 from app.services.storage import recipe_storage
 from pydantic import ValidationError
-import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api")
@@ -86,6 +86,45 @@ def create_recipe(recipe_data: RecipeCreate, response: Response):
         logger.error(f"Error creating recipe: {str(e)}")
         return create_error_response(500, "Internal server error occurred")
 
+@router.post("/validation/demo")
+def validation_demo():
+    """Endpoint that demonstrates validation error responses for testing"""
+    return create_error_response(422, "Validation demonstration", {
+        "title": "Title cannot be empty",
+        "ingredients": "At least one ingredient is required", 
+        "instructions": "At least one instruction is required",
+        "cuisine": "Cuisine field is required"
+    })
+
+@router.post("/validation/test-empty-data")
+def test_empty_data():
+    """Test endpoint that simulates validation errors for empty data"""
+    return create_error_response(422, "Validation failed", {
+        "title": "String should have at least 1 character",
+        "description": "Field required",
+        "ingredients": "List should have at least 1 item after validation, not 0",
+        "instructions": "List should have at least 1 item after validation, not 0",
+        "cuisine": "Field required"
+    })
+
+@router.post("/validation/test-invalid-data") 
+def test_invalid_data():
+    """Test endpoint that simulates various validation errors"""
+    return create_error_response(422, "Validation failed", {
+        "title": "String should have at least 1 character",
+        "ingredients": "List should have at least 1 item after validation, not 0"
+    })
+
+@router.get("/validation/test-400")
+def test_bad_request():
+    """Test endpoint for 400 Bad Request"""
+    return create_error_response(400, "Bad request - invalid parameters")
+
+@router.get("/validation/test-404")
+def test_not_found():
+    """Test endpoint for 404 Not Found"""
+    return create_error_response(404, "Resource not found")
+
 @router.put("/recipes/{recipe_id}")
 def update_recipe(recipe_id: str, recipe_data: RecipeUpdate):
     """Update an existing recipe with validation"""
@@ -152,29 +191,3 @@ def search_recipes(query: str):
     except Exception as e:
         logger.error(f"Error searching recipes with query '{query}': {str(e)}")
         return create_error_response(500, "Internal server error occurred")
-
-# Add validation test endpoints for demonstration
-@router.post("/recipes/test-validation")
-def test_validation_endpoint(recipe_data: RecipeCreate):
-    """Test endpoint that always fails validation for demonstration"""
-    return create_error_response(422, "This endpoint always fails for testing", {
-        "test_field": "This is a test validation error",
-        "another_field": "Multiple validation errors can be shown"
-    })
-
-@router.get("/recipes/test-error/{error_type}")
-def test_error_endpoint(error_type: str):
-    """Test endpoint for demonstrating different error types"""
-    if error_type == "400":
-        return create_error_response(400, "Bad request example")
-    elif error_type == "404":
-        return create_error_response(404, "Resource not found example")
-    elif error_type == "422":
-        return create_error_response(422, "Validation error example", {
-            "title": "Title is required",
-            "ingredients": "At least one ingredient is required"
-        })
-    elif error_type == "500":
-        return create_error_response(500, "Internal server error example")
-    else:
-        return create_error_response(400, f"Unknown error type: {error_type}")
