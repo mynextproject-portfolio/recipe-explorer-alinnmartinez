@@ -2,6 +2,33 @@
 Basic smoke and contract tests for Recipe Explorer API.
 These tests verify that endpoints exist and return expected status codes.
 """
+import pytest
+from fastapi.testclient import TestClient
+from app.main import app
+from app.services.storage import recipe_storage
+
+@pytest.fixture
+def client():
+    """Create test client"""
+    return TestClient(app)
+
+@pytest.fixture
+def clean_storage():
+    """Clear storage before each test"""
+    recipe_storage.clear_all()
+    yield
+    recipe_storage.clear_all()
+
+@pytest.fixture
+def sample_recipe_data():
+    return {
+        "title": "Test Recipe",
+        "description": "A test recipe",
+        "cuisine": "Italian",  # New field
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": ["First, do step 1.", "Then, do step 2."],  # Changed to array
+        "tags": ["test", "sample"]
+    }
 
 def test_health_check(client):
     """Smoke test: API is running and responding"""
@@ -9,13 +36,11 @@ def test_health_check(client):
     assert response.status_code == 200
     assert response.json() == {"status": "healthy"}
 
-
 def test_home_page_loads(client):
     """Smoke test: Home page renders without error"""
     response = client.get("/")
     assert response.status_code == 200
     assert "Recipe Explorer" in response.text
-
 
 def test_get_all_recipes(client, clean_storage):
     """Contract test: GET /api/recipes returns correct structure"""
@@ -24,7 +49,6 @@ def test_get_all_recipes(client, clean_storage):
     data = response.json()
     assert "recipes" in data
     assert isinstance(data["recipes"], list)
-
 
 def test_create_and_get_recipe(client, clean_storage, sample_recipe_data):
     """Contract test: Create recipe and verify response structure"""
@@ -43,12 +67,10 @@ def test_create_and_get_recipe(client, clean_storage, sample_recipe_data):
     assert get_response.status_code == 200
     assert get_response.json()["id"] == recipe["id"]
 
-
 def test_recipe_not_found(client, clean_storage):
     """Contract test: Non-existent recipe returns 404"""
     response = client.get("/api/recipes/non-existent-id")
     assert response.status_code == 404
-
 
 def test_recipe_pages_load(client, clean_storage, sample_recipe_data):
     """Smoke test: Recipe HTML pages load without error"""
@@ -67,15 +89,3 @@ def test_recipe_pages_load(client, clean_storage, sample_recipe_data):
     # Test import page
     response = client.get("/import")
     assert response.status_code == 200
-
-
-@pytest.fixture
-def sample_recipe_data():
-    return {
-        "title": "Test Recipe",
-        "description": "A test recipe",
-        "cuisine": "Italian",  # New field
-        "ingredients": ["ingredient 1", "ingredient 2"],
-        "instructions": ["First, do step 1.", "Then, do step 2."],  # Changed to array
-        "tags": ["test", "sample"]
-    }
