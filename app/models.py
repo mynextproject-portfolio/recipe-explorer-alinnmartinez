@@ -7,6 +7,7 @@ import uuid
 # Constants
 MAX_TITLE_LENGTH = 200
 MAX_INGREDIENTS = 50
+TEMP = 'Delete after committing'
 
 class DifficultyLevel(str, Enum):
     EASY = "Easy"
