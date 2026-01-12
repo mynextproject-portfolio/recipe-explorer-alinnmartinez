@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_serializer
 from datetime import datetime
 from typing import List, Optional
 from enum import Enum
@@ -14,6 +14,8 @@ class DifficultyLevel(str, Enum):
     HARD = "Hard"
 
 class Recipe(BaseModel):
+    model_config = ConfigDict()
+    
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str 
     description: str
@@ -24,11 +26,9 @@ class Recipe(BaseModel):
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
 
-
-    class Config:
-        json_encoders = {
-            datetime: lambda v: v.isoformat()
-        }
+    @field_serializer('created_at', 'updated_at')
+    def serialize_datetime(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 class RecipeCreate(BaseModel):

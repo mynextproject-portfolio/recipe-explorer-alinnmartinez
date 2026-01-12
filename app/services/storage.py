@@ -29,7 +29,7 @@ class RecipeStorage:
         return results
     
     def create_recipe(self, recipe_data: RecipeCreate) -> Recipe:
-        recipe = Recipe(**recipe_data.dict())
+        recipe = Recipe(**recipe_data.model_dump())
         self.recipes[recipe.id] = recipe
         return recipe
     
