@@ -67,3 +67,15 @@ def test_recipe_pages_load(client, clean_storage, sample_recipe_data):
     # Test import page
     response = client.get("/import")
     assert response.status_code == 200
+
+
+@pytest.fixture
+def sample_recipe_data():
+    return {
+        "title": "Test Recipe",
+        "description": "A test recipe",
+        "cuisine": "Italian",  # New field
+        "ingredients": ["ingredient 1", "ingredient 2"],
+        "instructions": ["First, do step 1.", "Then, do step 2."],  # Changed to array
+        "tags": ["test", "sample"]
+    }
