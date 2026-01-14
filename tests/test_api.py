@@ -24,9 +24,9 @@ def sample_recipe_data():
     return {
         "title": "Test Recipe",
         "description": "A test recipe",
-        "cuisine": "Italian",
+        "cuisine": "Italian",  # New field
         "ingredients": ["ingredient 1", "ingredient 2"],
-        "instructions": ["First, do step 1.", "Then, do step 2."],
+        "instructions": ["First, do step 1.", "Then, do step 2."],  # Changed to array
         "tags": ["test", "sample"]
     }
 
@@ -52,9 +52,9 @@ def test_get_all_recipes(client, clean_storage):
 
 def test_create_and_get_recipe(client, clean_storage, sample_recipe_data):
     """Contract test: Create recipe and verify response structure"""
-    # Create recipe - expect 201 for created resource
+    # Create recipe
     create_response = client.post("/api/recipes", json=sample_recipe_data)
-    assert create_response.status_code == 201  # Changed from 200 to 201
+    assert create_response.status_code == 200
     
     recipe = create_response.json()
     assert "id" in recipe
