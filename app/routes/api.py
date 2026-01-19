@@ -278,6 +278,22 @@ def create_recipe(recipe_data: RecipeCreate, response: Response, request: Reques
         logger.error(f"Unexpected error creating recipe: {str(e)}")
         return create_error_response(500, "Internal server error occurred")
 
+# RANDOM RECIPES ENDPOINT - MUST COME BEFORE {recipe_id} route
+@router.get("/recipes/random")
+async def get_random_recipes(count: int = 5):
+    """Get random recipes from external API"""
+    try:
+        logger.info(f"Getting {count} random recipes")
+        recipes = await themealdb_adapter.get_random_recipes(count)
+        return {
+            "recipes": [recipe.model_dump() for recipe in recipes],
+            "count": len(recipes)
+        }
+    
+    except Exception as e:
+        logger.error(f"Error getting random recipes: {str(e)}")
+        return create_error_response(500, "Internal server error occurred")
+
 @router.get("/recipes/{recipe_id}")
 async def get_recipe(recipe_id: str):
     """Get a recipe by ID (tries internal first, then external)"""
@@ -349,20 +365,4 @@ def delete_recipe(recipe_id: str):
     
     except Exception as e:
         logger.error(f"Error deleting recipe {recipe_id}: {str(e)}")
-        return create_error_response(500, "Internal server error occurred")
-
-# RANDOM RECIPES ENDPOINT
-@router.get("/recipes/random")
-async def get_random_recipes(count: int = 5):
-    """Get random recipes from external API"""
-    try:
-        logger.info(f"Getting {count} random recipes")
-        recipes = await themealdb_adapter.get_random_recipes(count)
-        return {
-            "recipes": [recipe.model_dump() for recipe in recipes],
-            "count": len(recipes)
-        }
-    
-    except Exception as e:
-        logger.error(f"Error getting random recipes: {str(e)}")
         return create_error_response(500, "Internal server error occurred")
