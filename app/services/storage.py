@@ -115,5 +115,10 @@ class RecipeStorage:
         
         return results
 
+    def clear_all(self):
+        """Clear all recipes from storage (for testing)"""
+        self._recipes.clear()
+        self._save_data()
+
 # Global instance
 recipe_storage = RecipeStorage()
