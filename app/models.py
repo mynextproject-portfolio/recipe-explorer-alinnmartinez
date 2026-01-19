@@ -11,6 +11,10 @@ MAX_INGREDIENTS = 50
 MAX_INSTRUCTIONS = 50
 MAX_DESCRIPTION_LENGTH = 1000
 
+class RecipeSource(str, Enum):
+    INTERNAL = "internal"
+    EXTERNAL = "external"
+
 class Recipe(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
     
@@ -21,8 +25,15 @@ class Recipe(BaseModel):
     instructions: List[str] = Field(..., min_length=1, max_length=MAX_INSTRUCTIONS)
     tags: List[str] = Field(default_factory=list, max_length=20)
     cuisine: str = Field(..., min_length=1, max_length=50)
+    source: RecipeSource = RecipeSource.INTERNAL
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
+
+    # Optional fields for external recipes
+    external_image: Optional[str] = None
+    external_video: Optional[str] = None
+    external_area: Optional[str] = None
+    external_category: Optional[str] = None
 
     @field_validator('title')
     @classmethod
@@ -207,6 +218,30 @@ class RecipeCreate(BaseModel):
 
 class RecipeUpdate(RecipeCreate):
     pass
+
+
+class ExternalRecipe(BaseModel):
+    """Raw external recipe from TheMealDB"""
+    id: str
+    title: str
+    description: str
+    ingredients: List[str]
+    instructions: List[str]
+    tags: List[str] = []
+    cuisine: str
+    image: Optional[str] = None
+    video: Optional[str] = None
+    area: Optional[str] = None
+    category: Optional[str] = None
+
+
+class SearchResult(BaseModel):
+    """Combined search results from internal and external sources"""
+    recipes: List[Recipe]
+    total_count: int
+    internal_count: int
+    external_count: int
+    query: str
 
 
 # Test data - hardcoded recipe for testing
