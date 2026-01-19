@@ -1,0 +1,12 @@
+class RecipeStorage:
+    def __init__(self):
+        self.recipes = []
+
+    def clear_all(self):
+        self.recipes.clear()
+
+import pytest
+
+@pytest.fixture
+def clean_storage():
+    recipe_storage.clear_all()
