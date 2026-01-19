@@ -6,6 +6,15 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 from app.services.storage import recipe_storage
+from unittest.mock import patch, AsyncMock
+from app.models import SearchResult, Recipe, RecipeSource
+from unittest.mock import patch, AsyncMock
+from app.models import SearchResult
+from unittest.mock import patch, AsyncMock
+from app.models import SearchResult
+from unittest.mock import patch, AsyncMock
+from unittest.mock import patch, AsyncMock
+from app.models import SearchResult, Recipe, RecipeSource
 
 @pytest.fixture
 def client():
@@ -89,3 +98,201 @@ def test_recipe_pages_load(client, clean_storage, sample_recipe_data):
     # Test import page
     response = client.get("/import")
     assert response.status_code == 200
+    @pytest.mark.asyncio
+    async def test_search_recipes_query_param_success(client, clean_storage):
+        """Test successful search with query parameter"""
+        # Mock the search service response
+        
+        mock_recipe = Recipe(
+            id="test_id",
+            title="Test Recipe",
+            description="A test recipe",
+            cuisine="Italian",
+            ingredients=["ingredient 1"],
+            instructions=["step 1"],
+            tags=["test"],
+            source=RecipeSource.INTERNAL
+        )
+        
+        mock_result = SearchResult(
+            recipes=[mock_recipe],
+            total_count=1,
+            internal_count=1,
+            external_count=0,
+            query="test"
+        )
+        
+        with patch('app.services.search_service.search_service.combined_search', new_callable=AsyncMock) as mock_search:
+            mock_search.return_value = mock_result
+            
+            response = client.get("/api/recipes/search?q=test&limit=10")
+            
+            assert response.status_code == 200
+            data = response.json()
+            
+            # Verify response structure
+            assert "recipes" in data
+            assert "total_count" in data
+            assert "internal_count" in data
+            assert "external_count" in data
+            assert "query" in data
+            assert "sources" in data
+            
+            # Verify values
+            assert data["total_count"] == 1
+            assert data["internal_count"] == 1
+            assert data["external_count"] == 0
+            assert data["query"] == "test"
+            assert len(data["recipes"]) == 1
+            assert data["recipes"][0]["title"] == "Test Recipe"
+            
+            # Verify search service was called with correct parameters
+            mock_search.assert_called_once_with("test", 10)
+
+    @pytest.mark.asyncio
+    async def test_search_recipes_query_param_default_limit(client, clean_storage):
+        """Test search with default limit when not specified"""
+        
+        mock_result = SearchResult(
+            recipes=[],
+            total_count=0,
+            internal_count=0,
+            external_count=0,
+            query="test"
+        )
+        
+        with patch('app.services.search_service.search_service.combined_search', new_callable=AsyncMock) as mock_search:
+            mock_search.return_value = mock_result
+            
+            response = client.get("/api/recipes/search?q=test")
+            
+            assert response.status_code == 200
+            # Verify default limit of 20 was used
+            mock_search.assert_called_once_with("test", 20)
+
+    def test_search_recipes_query_param_empty_query(client, clean_storage):
+        """Test search with empty query returns 400"""
+        response = client.get("/api/recipes/search?q=")
+        
+        assert response.status_code == 400
+        data = response.json()
+        assert data["error"] is True
+        assert data["message"] == "Search query cannot be empty"
+        assert data["status_code"] == 400
+
+    def test_search_recipes_query_param_missing_query(client, clean_storage):
+        """Test search without query parameter returns validation error"""
+        response = client.get("/api/recipes/search")
+        
+        # FastAPI will return 422 for missing required parameter
+        assert response.status_code == 422
+
+    def test_search_recipes_query_param_whitespace_query(client, clean_storage):
+        """Test search with whitespace-only query returns 400"""
+        response = client.get("/api/recipes/search?q=   ")
+        
+        assert response.status_code == 400
+        data = response.json()
+        assert data["error"] is True
+        assert data["message"] == "Search query cannot be empty"
+
+    def test_search_recipes_query_param_short_query(client, clean_storage):
+        """Test search with query too short returns 400"""
+        response = client.get("/api/recipes/search?q=x")
+        
+        assert response.status_code == 400
+        data = response.json()
+        assert data["error"] is True
+        assert data["message"] == "Search query must be at least 2 characters long"
+
+    @pytest.mark.asyncio
+    async def test_search_recipes_query_param_with_custom_limit(client, clean_storage):
+        """Test search with custom limit parameter"""
+        
+        mock_result = SearchResult(
+            recipes=[],
+            total_count=0,
+            internal_count=0,
+            external_count=0,
+            query="chicken"
+        )
+        
+        with patch('app.services.search_service.search_service.combined_search', new_callable=AsyncMock) as mock_search:
+            mock_search.return_value = mock_result
+            
+            response = client.get("/api/recipes/search?q=chicken&limit=5")
+            
+            assert response.status_code == 200
+            # Verify custom limit was passed to search service
+            mock_search.assert_called_once_with("chicken", 5)
+
+    @pytest.mark.asyncio
+    async def test_search_recipes_query_param_search_service_exception(client, clean_storage):
+        """Test search when search service raises exception returns 500"""
+        
+        with patch('app.services.search_service.search_service.combined_search', new_callable=AsyncMock) as mock_search:
+            mock_search.side_effect = Exception("Search service error")
+            
+            response = client.get("/api/recipes/search?q=test")
+            
+            assert response.status_code == 500
+            data = response.json()
+            assert data["error"] is True
+            assert data["message"] == "Internal server error occurred"
+            assert data["status_code"] == 500
+
+    @pytest.mark.asyncio
+    async def test_search_recipes_query_param_mixed_results(client, clean_storage):
+        """Test search with both internal and external results"""
+        
+        internal_recipe = Recipe(
+            id="internal_1",
+            title="Internal Recipe",
+            description="Internal recipe",
+            cuisine="Italian",
+            ingredients=["ingredient 1"],
+            instructions=["step 1"],
+            tags=["internal"],
+            source=RecipeSource.INTERNAL
+        )
+        
+        external_recipe = Recipe(
+            id="ext_external_1",
+            title="External Recipe",
+            description="External recipe",
+            cuisine="Mexican",
+            ingredients=["ingredient 2"],
+            instructions=["step 2"],
+            tags=["external"],
+            source=RecipeSource.EXTERNAL
+        )
+        
+        mock_result = SearchResult(
+            recipes=[internal_recipe, external_recipe],
+            total_count=2,
+            internal_count=1,
+            external_count=1,
+            query="recipe"
+        )
+        
+        with patch('app.services.search_service.search_service.combined_search', new_callable=AsyncMock) as mock_search:
+            mock_search.return_value = mock_result
+            
+            response = client.get("/api/recipes/search?q=recipe")
+            
+            assert response.status_code == 200
+            data = response.json()
+            
+            assert data["total_count"] == 2
+            assert data["internal_count"] == 1
+            assert data["external_count"] == 1
+            assert data["sources"]["internal"] == 1
+            assert data["sources"]["external"] == 1
+            assert len(data["recipes"]) == 2
+
+    def test_search_recipes_query_param_invalid_limit_type(client, clean_storage):
+        """Test search with non-integer limit parameter"""
+        response = client.get("/api/recipes/search?q=test&limit=abc")
+        
+        # FastAPI will return 422 for invalid parameter type
+        assert response.status_code == 422
