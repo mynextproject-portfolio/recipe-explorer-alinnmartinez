@@ -83,6 +83,35 @@ def llm_analysis_test():
     })
 
 # ENHANCED SEARCH ENDPOINTS
+@router.get("/recipes/search")
+async def search_recipes_query_param(q: str, limit: int = 20):
+    """Search recipes using query parameter (q=searchterm)"""
+    try:
+        if not q or not q.strip():
+            return create_error_response(400, "Search query cannot be empty")
+        
+        if len(q.strip()) < 2:
+            return create_error_response(400, "Search query must be at least 2 characters long")
+        
+        # Use enhanced search service
+        results = await search_service.combined_search(q.strip(), limit)
+        
+        return {
+            "recipes": [recipe.model_dump() for recipe in results.recipes],
+            "total_count": results.total_count,
+            "internal_count": results.internal_count,
+            "external_count": results.external_count,
+            "query": results.query,
+            "sources": {
+                "internal": results.internal_count,
+                "external": results.external_count
+            }
+        }
+    
+    except Exception as e:
+        logger.error(f"Error in search '{q}': {str(e)}")
+        return create_error_response(500, "Internal server error occurred")
+
 @router.get("/recipes/search/{query}")
 async def search_recipes_combined(query: str, limit: int = 20):
     """Enhanced search that combines internal and external results"""
