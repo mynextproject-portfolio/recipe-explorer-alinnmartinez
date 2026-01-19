@@ -402,3 +402,336 @@ def test_recipe_pages_load(client, clean_storage, sample_recipe_data):
                     # Should still process the request and call storage
                     assert response.status_code == 404  # Not found
                     mock_delete.assert_called_once_with(recipe_id)
+                    class TestDeleteRecipe:
+                        """Test delete recipe endpoint"""
+                        
+                        def test_delete_recipe_success(self, client):
+                            """Test successful recipe deletion"""
+                            recipe_id = "test-recipe-123"
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                assert response.status_code == 200
+                                data = response.json()
+                                
+                                # Verify response structure
+                                assert "message" in data
+                                assert "id" in data
+                                assert data["message"] == "Recipe deleted successfully"
+                                assert data["id"] == recipe_id
+                                
+                                # Verify storage method was called correctly
+                                mock_delete.assert_called_once_with(recipe_id)
+
+                        def test_delete_recipe_not_found(self, client):
+                            """Test deleting non-existent recipe returns 404"""
+                            recipe_id = "non-existent-recipe"
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', return_value=False) as mock_delete:
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                assert response.status_code == 404
+                                data = response.json()
+                                
+                                # Verify error response structure
+                                assert data["error"] is True
+                                assert data["status_code"] == 404
+                                assert f"Internal recipe with ID '{recipe_id}' not found" in data["message"]
+                                
+                                mock_delete.assert_called_once_with(recipe_id)
+
+                        def test_delete_recipe_empty_path(self, client):
+                            """Test delete with empty recipe path returns 404"""
+                            response = client.delete("/api/recipes/")
+                            
+                            # FastAPI will return 404 for missing path parameter
+                            assert response.status_code == 404
+
+                        def test_delete_recipe_whitespace_id(self, client):
+                            """Test delete with whitespace-only recipe ID returns 400"""
+                            recipe_id = "   "
+                            
+                            response = client.delete(f"/api/recipes/{recipe_id}")
+                            
+                            assert response.status_code == 400
+                            data = response.json()
+                            assert data["error"] is True
+                            assert data["message"] == "Recipe ID cannot be empty"
+                            assert data["status_code"] == 400
+
+                        def test_delete_recipe_storage_exception(self, client):
+                            """Test delete when storage raises exception returns 500"""
+                            recipe_id = "test-recipe-123"
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', side_effect=Exception("Database error")):
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                assert response.status_code == 500
+                                data = response.json()
+                                assert data["error"] is True
+                                assert data["message"] == "Internal server error occurred"
+                                assert data["status_code"] == 500
+
+                        def test_delete_recipe_with_encoded_characters(self, client):
+                            """Test delete with URL-encoded characters in recipe ID"""
+                            recipe_id = "test%20recipe%20123"
+                            decoded_id = "test recipe 123"
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                assert response.status_code == 200
+                                data = response.json()
+                                assert data["id"] == decoded_id
+                                
+                                # Verify storage was called with decoded ID
+                                mock_delete.assert_called_once_with(decoded_id)
+
+                        def test_delete_recipe_special_characters(self, client):
+                            """Test delete with special characters in recipe ID"""
+                            recipe_id = "recipe-with-dash_and_underscore.123"
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                assert response.status_code == 200
+                                mock_delete.assert_called_once_with(recipe_id)
+
+                        def test_delete_recipe_very_long_id(self, client):
+                            """Test delete with very long recipe ID"""
+                            recipe_id = "very-long-recipe-id-" + "x" * 1000
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', return_value=False) as mock_delete:
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                # Should still process the request and call storage
+                                assert response.status_code == 404  # Not found
+                                mock_delete.assert_called_once_with(recipe_id)
+
+                        def test_delete_recipe_uuid_format(self, client):
+                            """Test delete with UUID format recipe ID"""
+                            recipe_id = "550e8400-e29b-41d4-a716-446655440000"
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                assert response.status_code == 200
+                                data = response.json()
+                                assert data["id"] == recipe_id
+                                mock_delete.assert_called_once_with(recipe_id)
+
+                        def test_delete_recipe_numeric_id(self, client):
+                            """Test delete with numeric recipe ID"""
+                            recipe_id = "12345"
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                assert response.status_code == 200
+                                data = response.json()
+                                assert data["id"] == recipe_id
+                                mock_delete.assert_called_once_with(recipe_id)
+
+                        def test_delete_recipe_with_periods_and_slashes(self, client):
+                            """Test delete with periods in recipe ID"""
+                            recipe_id = "recipe.v1.2"
+                            
+                            with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                response = client.delete(f"/api/recipes/{recipe_id}")
+                                
+                                assert response.status_code == 200
+                                mock_delete.assert_called_once_with(recipe_id)
+
+                                class TestDeleteRecipe:
+                                    """Test delete recipe endpoint"""
+                                    
+                                    def test_delete_recipe_success(self, client):
+                                        """Test successful recipe deletion"""
+                                        recipe_id = "test-recipe-123"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 200
+                                            data = response.json()
+                                            
+                                            # Verify response structure
+                                            assert "message" in data
+                                            assert "id" in data
+                                            assert data["message"] == "Recipe deleted successfully"
+                                            assert data["id"] == recipe_id
+                                            
+                                            # Verify storage method was called correctly
+                                            mock_delete.assert_called_once_with(recipe_id)
+
+                                    def test_delete_recipe_not_found(self, client):
+                                        """Test deleting non-existent recipe returns 404"""
+                                        recipe_id = "non-existent-recipe"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=False) as mock_delete:
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 404
+                                            data = response.json()
+                                            
+                                            # Verify error response structure
+                                            assert data["error"] is True
+                                            assert data["status_code"] == 404
+                                            assert f"Internal recipe with ID '{recipe_id}' not found" in data["message"]
+                                            
+                                            mock_delete.assert_called_once_with(recipe_id)
+
+                                    def test_delete_recipe_empty_path(self, client):
+                                        """Test delete with empty recipe path returns 404"""
+                                        response = client.delete("/api/recipes/")
+                                        
+                                        # FastAPI will return 404 for missing path parameter
+                                        assert response.status_code == 404
+
+                                    def test_delete_recipe_whitespace_id(self, client):
+                                        """Test delete with whitespace-only recipe ID returns 400"""
+                                        recipe_id = "   "
+                                        
+                                        response = client.delete(f"/api/recipes/{recipe_id}")
+                                        
+                                        assert response.status_code == 400
+                                        data = response.json()
+                                        assert data["error"] is True
+                                        assert data["message"] == "Recipe ID cannot be empty"
+                                        assert data["status_code"] == 400
+
+                                    def test_delete_recipe_storage_exception(self, client):
+                                        """Test delete when storage raises exception returns 500"""
+                                        recipe_id = "test-recipe-123"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', side_effect=Exception("Database error")):
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 500
+                                            data = response.json()
+                                            assert data["error"] is True
+                                            assert data["message"] == "Internal server error occurred"
+                                            assert data["status_code"] == 500
+
+                                    def test_delete_recipe_with_encoded_characters(self, client):
+                                        """Test delete with URL-encoded characters in recipe ID"""
+                                        recipe_id = "test%20recipe%20123"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 200
+                                            data = response.json()
+                                            # FastAPI automatically decodes URL parameters
+                                            assert data["id"] == recipe_id
+                                            
+                                            # Verify storage was called with the encoded ID as FastAPI passes it
+                                            mock_delete.assert_called_once_with("test recipe 123")
+
+                                    def test_delete_recipe_special_characters(self, client):
+                                        """Test delete with special characters in recipe ID"""
+                                        recipe_id = "recipe-with-dash_and_underscore.123"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 200
+                                            mock_delete.assert_called_once_with(recipe_id)
+
+                                    def test_delete_recipe_very_long_id(self, client):
+                                        """Test delete with very long recipe ID"""
+                                        recipe_id = "very-long-recipe-id-" + "x" * 1000
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=False) as mock_delete:
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            # Should still process the request and call storage
+                                            assert response.status_code == 404  # Not found
+                                            mock_delete.assert_called_once_with(recipe_id)
+
+                                    def test_delete_recipe_uuid_format(self, client):
+                                        """Test delete with UUID format recipe ID"""
+                                        recipe_id = "550e8400-e29b-41d4-a716-446655440000"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 200
+                                            data = response.json()
+                                            assert data["id"] == recipe_id
+                                            mock_delete.assert_called_once_with(recipe_id)
+
+                                    def test_delete_recipe_numeric_id(self, client):
+                                        """Test delete with numeric recipe ID"""
+                                        recipe_id = "12345"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 200
+                                            data = response.json()
+                                            assert data["id"] == recipe_id
+                                            mock_delete.assert_called_once_with(recipe_id)
+
+                                    def test_delete_recipe_with_periods(self, client):
+                                        """Test delete with periods in recipe ID"""
+                                        recipe_id = "recipe.v1.2"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True) as mock_delete:
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 200
+                                            mock_delete.assert_called_once_with(recipe_id)
+
+                                    def test_delete_recipe_empty_string_id(self, client):
+                                        """Test delete with empty string recipe ID returns 400"""
+                                        recipe_id = ""
+                                        
+                                        response = client.delete(f"/api/recipes/{recipe_id}")
+                                        
+                                        # This will actually result in a 404 from FastAPI routing
+                                        assert response.status_code == 404
+
+                                    def test_delete_recipe_tab_whitespace_id(self, client):
+                                        """Test delete with tab and newline whitespace returns 400"""
+                                        recipe_id = "\t\n\r"
+                                        
+                                        response = client.delete(f"/api/recipes/{recipe_id}")
+                                        
+                                        assert response.status_code == 400
+                                        data = response.json()
+                                        assert data["error"] is True
+                                        assert data["message"] == "Recipe ID cannot be empty"
+
+                                    def test_delete_recipe_mixed_whitespace_id(self, client):
+                                        """Test delete with mixed whitespace characters returns 400"""
+                                        recipe_id = "  \t  \n  "
+                                        
+                                        response = client.delete(f"/api/recipes/{recipe_id}")
+                                        
+                                        assert response.status_code == 400
+                                        data = response.json()
+                                        assert data["error"] is True
+                                        assert data["message"] == "Recipe ID cannot be empty"
+
+                                    def test_delete_recipe_response_format_consistency(self, client):
+                                        """Test that successful delete response has consistent format"""
+                                        recipe_id = "format-test-recipe"
+                                        
+                                        with patch('app.services.storage.recipe_storage.delete_recipe', return_value=True):
+                                            response = client.delete(f"/api/recipes/{recipe_id}")
+                                            
+                                            assert response.status_code == 200
+                                            data = response.json()
+                                            
+                                            # Verify response structure matches expected format
+                                            expected_keys = {"message", "id"}
+                                            assert set(data.keys()) == expected_keys
+                                            assert isinstance(data["message"], str)
+                                            assert isinstance(data["id"], str)
+                                            
+                                            # Verify no error fields in success response
+                                            assert "error" not in data
+                                            assert "status_code" not in data
+                                            assert "details" not in data
