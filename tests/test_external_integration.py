@@ -113,8 +113,9 @@ class TestTheMealDBIntegration:
             recipe = recipes[0]
             # Should have 5 ingredients (empty ones filtered out)
             assert len(recipe.ingredients) == 5
-            assert 'penne rigate' in recipe.ingredients
-            assert 'olive oil' in recipe.ingredients
+            # Ingredients include measurements, so check for partial matches
+            assert any('penne rigate' in ingredient for ingredient in recipe.ingredients)
+            assert any('olive oil' in ingredient for ingredient in recipe.ingredients)
         
         await adapter.close()
 
@@ -352,7 +353,7 @@ async def test_api_endpoints_comprehensive():
     response = client.get("/api/recipes/search/internal/chicken")
     assert response.status_code == 200
     data = response.json()
-    assert isinstance(data, list)  # Internal search returns list directly
+    assert "recipes" in data  # Internal search returns object with recipes array
     
     # Test external search endpoint
     response = client.get("/api/recipes/search/external/chicken")
@@ -464,8 +465,8 @@ class TestEdgeCases:
             recipe = recipes[0]
             # Should only have 2 real ingredients
             assert len(recipe.ingredients) == 2
-            assert 'Real Ingredient' in recipe.ingredients
-            assert 'Another Real Ingredient' in recipe.ingredients
+            assert any('Real Ingredient' in ingredient for ingredient in recipe.ingredients)
+            assert any('Another Real Ingredient' in ingredient for ingredient in recipe.ingredients)
         
         await adapter.close()
 

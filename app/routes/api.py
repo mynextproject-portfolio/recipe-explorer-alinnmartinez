@@ -356,14 +356,11 @@ def delete_recipe(recipe_id: str):
 async def get_random_recipes(count: int = 5):
     """Get random recipes from external API"""
     try:
-        if count < 1 or count > 20:
-            return create_error_response(400, "Count must be between 1 and 20")
-        
+        logger.info(f"Getting {count} random recipes")
         recipes = await themealdb_adapter.get_random_recipes(count)
         return {
             "recipes": [recipe.model_dump() for recipe in recipes],
-            "count": len(recipes),
-            "source": "external"
+            "count": len(recipes)
         }
     
     except Exception as e:

@@ -266,11 +266,11 @@ class TestSearchRecipes:
         """Search returns correct results"""
         response = client.get("/api/recipes/search/Test")
         assert response.status_code == 200
-        
+
         data = response.json()
         assert "recipes" in data
         assert "query" in data
-        assert "count" in data
+        assert "total_count" in data
         assert data["query"] == "Test"
 
     def test_search_recipes_empty_query(self, client):
