@@ -70,12 +70,14 @@ class TheMealDBAdapter:
     
     def _parse_instructions(self, instructions_text: str) -> List[str]:
         """Parse instructions text into list of steps"""
+        MAX_STEP_LENGTH = 500  # Match Recipe model validation limit
+
         if not instructions_text:
             return ["No instructions available"]
-        
+
         # Split by common delimiters
         steps = []
-        
+
         # Try splitting by numbered steps first
         if any(char.isdigit() for char in instructions_text[:10]):
             # Split by step numbers (1., 2., etc.)
@@ -90,8 +92,38 @@ class TheMealDBAdapter:
             for sentence in sentences:
                 if sentence.strip() and len(sentence.strip()) > 10:
                     steps.append(sentence.strip())
-        
-        return steps if steps else [instructions_text.strip()]
+
+        if not steps:
+            steps = [instructions_text.strip()]
+
+        # Split any steps that exceed the max length
+        final_steps = []
+        for step in steps:
+            if len(step) <= MAX_STEP_LENGTH:
+                final_steps.append(step)
+            else:
+                # Split long steps by sentence boundaries or at max length
+                remaining = step
+                while remaining:
+                    if len(remaining) <= MAX_STEP_LENGTH:
+                        final_steps.append(remaining)
+                        break
+                    # Try to split at a sentence boundary (. ! ?)
+                    split_pos = -1
+                    for i in range(MAX_STEP_LENGTH - 1, max(0, MAX_STEP_LENGTH - 100), -1):
+                        if remaining[i] in '.!?' and (i + 1 >= len(remaining) or remaining[i + 1] == ' '):
+                            split_pos = i + 1
+                            break
+                    if split_pos == -1:
+                        # No sentence boundary found, split at last space
+                        split_pos = remaining.rfind(' ', 0, MAX_STEP_LENGTH)
+                    if split_pos <= 0:
+                        # No space found, hard split at max length
+                        split_pos = MAX_STEP_LENGTH
+                    final_steps.append(remaining[:split_pos].strip())
+                    remaining = remaining[split_pos:].strip()
+
+        return final_steps if final_steps else ["No instructions available"]
     
     def _transform_meal_to_recipe(self, meal: Dict[str, Any]) -> Recipe:
         """Transform TheMealDB meal format to internal Recipe format"""

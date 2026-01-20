@@ -114,7 +114,9 @@ class Recipe(BaseModel):
     def validate_cuisine(cls, v):
         if not v or not v.strip():
             raise ValueError('Cuisine cannot be empty')
-        clean_cuisine = re.sub(r'[^a-zA-Z\s]', '', v.strip())
+        # Allow Unicode letters (accented chars like é, ç, ñ) and spaces
+        # Remove only digits and special punctuation, preserve international characters
+        clean_cuisine = re.sub(r'[0-9!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~]', '', v.strip())
         if not clean_cuisine:
             raise ValueError('Cuisine must contain only letters and spaces')
         return clean_cuisine.title()
@@ -210,7 +212,9 @@ class RecipeCreate(BaseModel):
     def validate_cuisine(cls, v):
         if not v or not v.strip():
             raise ValueError('Cuisine cannot be empty')
-        clean_cuisine = re.sub(r'[^a-zA-Z\s]', '', v.strip())
+        # Allow Unicode letters (accented chars like é, ç, ñ) and spaces
+        # Remove only digits and special punctuation, preserve international characters
+        clean_cuisine = re.sub(r'[0-9!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~]', '', v.strip())
         if not clean_cuisine:
             raise ValueError('Cuisine must contain only letters and spaces')
         return clean_cuisine.title()
